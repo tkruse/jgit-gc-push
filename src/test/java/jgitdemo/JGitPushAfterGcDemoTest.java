@@ -7,7 +7,6 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,25 +30,24 @@ public class JGitPushAfterGcDemoTest {
 
     @Test
     public void reproducePushSlowdownAfterGc() throws Exception {
-        final Properties properties = readProperties("gitlab");
+        final Properties properties = readProperties("github");
         final String gitUsername = properties.getProperty("user");
         final String gitPassword = properties.getProperty("password");
         final UsernamePasswordCredentialsProvider credProvider = new UsernamePasswordCredentialsProvider(gitUsername, gitPassword);
+        final String githubProject = "ruby";
+        final String remoteURL = "https://github.com/" + gitUsername + "/" + githubProject;
 
-//        final Properties properties = readProperties("github");
-//        final String githubProject = "linux";
-        //final String remoteURL = "https://github.com/" + gitUsername + "/" + githubProject;
-
-        final String githubProject = "proctor-data.git";
-        final String remoteURL = "https://code.corp.indeed.com/" + gitUsername + "/" + githubProject;
+        // final Properties properties = readProperties("gitlab");
+        // final String githubProject = "proctor-data.git";
+        // final String remoteURL = "https://code.corp.indeed.com/" + gitUsername + "/" + githubProject;
 
 
         // choose beween cleaned-up folder and fixed folder
-//        final File localFolder = folder.newFolder("react");
+//        final File localFolder = folder.newFolder(githubProject);
         final File localFolder = new File("/tmp/" + githubProject);
 
         LOGGER.debug("Cloning from " + remoteURL + " as " + gitUsername + " to " + localFolder);
-        final Git git = cloneRepository(remoteURL, localFolder, credProvider);
+        final Git git = cloneOrPullRepository(remoteURL, localFolder, credProvider);
 
         /* *********** Call to reproduce later git push delay **********/
         LOGGER.debug("Call GC");
@@ -58,7 +56,7 @@ public class JGitPushAfterGcDemoTest {
 
 
         LOGGER.debug("Modify, add and commit");
-        modifyAndCommitReadme(gitUsername, gitPassword, localFolder, git);
+        modifyAndCommitReadme(gitUsername, localFolder, git);
 
         LOGGER.debug("Push");
         final long start = System.currentTimeMillis();
@@ -71,7 +69,7 @@ public class JGitPushAfterGcDemoTest {
         LOGGER.info(pushResults);
     }
 
-    private void modifyAndCommitReadme(final String githubUsername, final String githubPassword, final File localFolder, final Git git) throws IOException, GitAPIException {
+    private void modifyAndCommitReadme(final String githubUsername, final File localFolder, final Git git) throws IOException, GitAPIException {
         final File readmeFile = new File(localFolder, "README.md");
 
         // modify README
@@ -84,7 +82,7 @@ public class JGitPushAfterGcDemoTest {
                 .call();
         git.commit()
                 .setCommitter(githubUsername, githubUsername)
-                .setAuthor(githubUsername, githubPassword)
+                .setAuthor(githubUsername, githubUsername)
                 .setMessage("commit " + System.currentTimeMillis())
                 .call();
     }
@@ -114,7 +112,7 @@ public class JGitPushAfterGcDemoTest {
         return git;
     }
 
-    private Git cloneRepository(
+    private Git cloneOrPullRepository(
             final String gitUrl,
             final File workingDir,
             final UsernamePasswordCredentialsProvider credentialsProvider
