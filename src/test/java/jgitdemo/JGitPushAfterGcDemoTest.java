@@ -29,22 +29,28 @@ public class JGitPushAfterGcDemoTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void reproducePushSlowdownAfterGc() throws Exception {
+    public void runGithub() throws Exception {
         final Properties properties = readProperties("github");
         final String gitUsername = properties.getProperty("user");
         final String gitPassword = properties.getProperty("password");
         final UsernamePasswordCredentialsProvider credProvider = new UsernamePasswordCredentialsProvider(gitUsername, gitPassword);
         final String githubProject = "ruby";
+
         final String remoteURL = "https://github.com/" + gitUsername + "/" + githubProject;
 
-        // final Properties properties = readProperties("gitlab");
-        // final String githubProject = "proctor-data.git";
-        // final String remoteURL = "https://code.corp.indeed.com/" + gitUsername + "/" + githubProject;
 
-
-        // choose beween cleaned-up folder and fixed folder
+        // choose between cleaned-up folder and fixed folder
 //        final File localFolder = folder.newFolder(githubProject);
         final File localFolder = new File("/tmp/" + githubProject);
+        reproducePushSlowdownAfterGc(gitUsername, credProvider, localFolder, remoteURL);
+    }
+
+    private void reproducePushSlowdownAfterGc(
+            final String gitUsername,
+            final UsernamePasswordCredentialsProvider credProvider,
+            final File localFolder,
+            final String remoteURL) throws GitAPIException, IOException {
+
 
         LOGGER.debug("Cloning from " + remoteURL + " as " + gitUsername + " to " + localFolder);
         final Git git = cloneOrPullRepository(remoteURL, localFolder, credProvider);
@@ -52,7 +58,6 @@ public class JGitPushAfterGcDemoTest {
         /* *********** Call to reproduce later git push delay **********/
         LOGGER.debug("Call GC");
         git.gc().setProgressMonitor(PROGRESS_MONITOR).call();
-
 
 
         LOGGER.debug("Modify, add and commit");
@@ -100,7 +105,7 @@ public class JGitPushAfterGcDemoTest {
     }
 
 
-    private Git pullRepository(
+    private static Git pullRepository(
             final File workingDir,
             final UsernamePasswordCredentialsProvider credProvider
     ) throws GitAPIException, IOException {
@@ -112,7 +117,7 @@ public class JGitPushAfterGcDemoTest {
         return git;
     }
 
-    private Git cloneOrPullRepository(
+    private static Git cloneOrPullRepository(
             final String gitUrl,
             final File workingDir,
             final UsernamePasswordCredentialsProvider credentialsProvider
